@@ -1,4 +1,4 @@
-from utils.utils import ext_nmat_to_nmat, nmat_to_notes
+from utils.utils import ext_nmat_to_nmat, nmat_to_notes, onset_sus_pr2midi, ext_nmat_to_pr
 import pretty_midi as pm
 import numpy as np
 
@@ -29,6 +29,8 @@ class PolyphonicMusic:
             self.track_name_list = track_name_list
         self.bpm = bpm
         self.prepare_voicing = prepare_voicing
+        # onset_sus_pr2midi(ext_nmat_to_pr(self.tracks[1], num_step=5000)).write('test.mid')
+        # input()
 
     def _select_track(self, track_ind=None, track_name=None):
         if track_ind is None and track_name is None:
@@ -50,7 +52,7 @@ class PolyphonicMusic:
             bar_tracks.append(bar_track)
         return bar_tracks
 
-    def _break_chord_to_bars(self, track, db_pos=None, db_ts=None):
+    def _break_chord_to_bars(self, db_pos=None, db_ts=None):
         if db_pos is None or db_ts is None:
             db_pos, db_ts = self.beat_track.get_downbeats()
         bar_chord = []
@@ -127,6 +129,11 @@ class PolyphonicMusic:
                 indicator[i] = 0
                 continue
             indicator[i] = 1
+            # if acc_track is not None:
+            #     onset_sus_pr2midi(ext_nmat_to_pr(acc_track, num_step=500)).write(f'{i}_{indicator[i]}_a.mid')
+            #     onset_sus_pr2midi(ext_nmat_to_pr(voicing_track, num_step=500)).write(f'{i}_{indicator[i]}_v.mid')
+            #     print(chord)
+            # input()
         return data_track, indicator, db_pos
 
     def regularize_chord_table(self):
@@ -310,7 +317,7 @@ class NikoChordProgression:
                     end = current_time + self.pr[current_time][pitch]
                     vel = 80
                     track.append([start // 4, start % 4, 4, end // 4, end % 4, 4, pitch, vel])
-        self.track = np.array(track)
+        self.track = np.array(track, dtype=int)
 
     def _break_track_to_bars(self, db_pos):
         # return a list of bars
@@ -367,7 +374,8 @@ class NikoChordProgression:
             mel_track = None
             acc_track = translate_track(track, db_pos[i])
             chord = broken_chords[i]
-            data_track.append([mel_track, acc_track, chord])
+            voicing_track = extract_voicing_from_8d_nmat(acc_track)
+            data_track.append([mel_track, acc_track, chord, voicing_track])
             if mel_track is None and acc_track is None:
                 indicator[i] = 0
                 continue
@@ -379,13 +387,13 @@ class NikoChordProgression:
                 continue
             indicator[i] = 1
 
-        new_data_track = []
-        new_indicator = []
-        for i in range(len(data_track)):
-            if len(data_track[i][1]) != 0:
-                new_data_track.append(data_track[i])
-                new_indicator.append(indicator[i])
-        data_track = new_data_track
-        indicator = new_indicator
+        # new_data_track = []
+        # new_indicator = []
+        # for i in range(len(data_track)):
+        #     if len(data_track[i][1]) != 0:
+        #         new_data_track.append(data_track[i])
+        #         new_indicator.append(indicator[i])
+        # data_track = new_data_track
+        # indicator = new_indicator
 
         return data_track, indicator, db_pos
